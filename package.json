@@ -18,6 +18,9 @@
   "homepage": "https://github.com/AnshuAyush/new#readme",
   "dependencies": {
     "express": "^4.18.1",
-    "hbs": "^4.2.0"
+    "express-fileupload": "^1.4.0",
+    "hbs": "^4.2.0",
+    "mongoose": "^6.3.5",
+    "multer": "^1.4.5-lts.1"
   }
 }
