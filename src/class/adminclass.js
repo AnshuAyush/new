@@ -6,11 +6,6 @@ const mySchema = new mongoose.Schema({
 })
 
 const admin = new mongoose.model("admin", mySchema);
-const doc = new admin({
-    name:"Anshu",
-    password:"ans"
-})
 
-doc.save();
 
 module.exports = admin;
