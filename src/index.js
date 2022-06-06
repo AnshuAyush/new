@@ -5,13 +5,36 @@ const admin = require("./class/adminclass")
 const PORT = 80;
 const Teacher = require("./class/teach")
 const bodyParser = require("body-parser");
-const upload = require("express-fileupload");
-const filesarray =[]
+const Image = require("./class/file")
+const path = require("path");
+const Student = require("./class/Student");
+let currentteacher = null;
 
-app.use(upload());
+const multer = require("multer");
+
+const storage = multer.diskStorage({
+    destination:(req, file, cb) =>{
+        cb(null, 'upload')
+    },
+    filename:(req, file, cb) =>{
+        const ext = path.extname(file.originalname)
+        const filepath = `images/${ext}`
+        const data = req.files;
+        Image.create({filepath, data}).then(()=>{cb(null, filepath)});
+        cb(null, filepath); 
+    }
+})
+const upload = multer({storage:storage});
+
+
+
 app.set("view engine", "hbs");
 app.use(bodyParser.urlencoded({ extended: true }));
 let active_admin = false
+
+
+
+
 
 
 app.get("/", (req, res) => {
@@ -36,7 +59,7 @@ app.post("/adminlogin", async (req, res) => {
     else if (email == obj.name && password == obj.password) {
         active_admin = true
         res.redirect("/admin")
-        res.render("/foradmin")
+        res.render("foradmin.hbs")
     }
 })
 
@@ -49,28 +72,51 @@ app.get("/admin", (req, res) => {
     res.render("foradmin")
 })
 
-app.post("/admin", async (req, res) => {
+app.post("/admin", upload.array('file'), async (req, res) => {
     const obj = req.body;
     if (obj.name != undefined) {
         const doc = new Teacher(obj);
         const result = await Teacher.insertMany([doc]);
-    }
-    const myfile = req.files.file;
-    
-    if (myfile.name != undefined) {
-        filesarray.push(myfile.name)
-        myfile.mv("./uploaded/" + myfile.name, (err) => {
-            if (err) console.log(err);
-        })
-
-    }
+    }    
     res.render("foradmin")
     
 })
 
-app.get("/admin/uploadfiles", (req, res) =>{
+app.get("/admin/uploadfiles", async (req, res) =>{
+    const result = await Image.find()
+    res.send(result)
+})
 
-    res.render("viewupload", {display:filesarray})
+
+app.get("/teacherlogin", (req, res)=>{
+    res.render("teacher_login")
+})
+
+app.post("/teacherlogin", (req, res)=>{
+    const obj = req.body;
+    currentteacher = obj.name
+    const result = Teacher.findOne(obj);
+    if(result != null){
+        res.redirect("/teacher")
+    }
+})
+
+app.get("/teacher", (req, res)=>{
+    res.render("forteacher", {currentteacher:currentteacher})
+})
+
+app.post("/teacher", async (req, res)=>{
+    const obj = req.body;
+    const doc = new Student(obj);
+    const result = await Student.insertMany([doc]);
+    if(result){
+        res.redirect("/teacher")
+        res.render("forteacher", {currentteacher:currentteacher})
+    }
+    else{
+        res.send("Some error occured !!");
+    }
+    
 })
 
 app.listen(PORT, (req, res) => {
