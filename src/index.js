@@ -8,8 +8,8 @@ const bodyParser = require("body-parser");
 const Image = require("./class/file")
 const path = require("path");
 const Student = require("./class/Student");
+const bcrypt = require("bcryptjs");
 let currentteacher = null;
-
 const multer = require("multer");
 
 const storage = multer.diskStorage({
@@ -66,7 +66,7 @@ app.post("/adminlogin", async (req, res) => {
 app.get("/admin", (req, res) => {
     if (!active_admin) {
         res.redirect("/adminlogin");
-        res.render("admin_login")
+        res.render("admin_login");
         return;
     }
     res.render("foradmin")
@@ -74,6 +74,8 @@ app.get("/admin", (req, res) => {
 
 app.post("/admin", upload.array('file'), async (req, res) => {
     const obj = req.body;
+    const strongPassword = await bcrypt.hash(obj.password, 12);
+    obj.password = strongPassword
     if (obj.name != undefined) {
         const doc = new Teacher(obj);
         const result = await Teacher.insertMany([doc]);
@@ -92,13 +94,18 @@ app.get("/teacherlogin", (req, res)=>{
     res.render("teacher_login")
 })
 
-app.post("/teacherlogin", (req, res)=>{
-    const obj = req.body;
-    currentteacher = obj.name
-    const result = Teacher.findOne(obj);
-    if(result != null){
-        res.redirect("/teacher")
-    }
+app.post("/teacherlogin", async (req, res)=>{
+        const obj = req.body;
+        currentteacher = obj.name;
+        const result = await Teacher.findOne({name:obj.name});
+        const check = await bcrypt.compare(obj.password,result.password)
+        if(result && check){
+            res.redirect("/teacher")
+        }
+        else{
+            res.send("Not Auth")
+        }       
+
 })
 
 app.get("/teacher", (req, res)=>{
@@ -117,6 +124,21 @@ app.post("/teacher", async (req, res)=>{
         res.send("Some error occured !!");
     }
     
+})
+
+app.get("/studentlogin", (req, res)=>{
+    res.render("student_login");
+})
+
+app.post("/studentlogin", async (req, res)=>{
+    const obj = req.body;
+    const result = await Student.findOne(obj);
+    if(result != null){
+        res.send("Hello student")
+    }
+    else{
+        res.send("Not Add pls contact your teacher")
+    }
 })
 
 app.listen(PORT, (req, res) => {
