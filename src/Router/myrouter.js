@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const admin = require("../class/adminclass")
 const Teacher = require("../class/teach")
-const bodyParser = require("body-parser");
+
 const Image = require("../class/file")
 const path = require("path");
 const Student = require("../class/Student");
@@ -10,31 +10,25 @@ const bcrypt = require("bcryptjs");
 let currentteacher = null;
 const multer = require("multer");
 
+
+
 const router = new express.Router();
 
 const storage = multer.diskStorage({
-    destination:(req, file, cb) =>{
+    destination: (req, file, cb) => {
         cb(null, 'upload')
     },
-    filename:(req, file, cb) =>{
+    filename: (req, file, cb) => {
         const ext = path.extname(file.originalname)
         const filepath = `images/${ext}`
         const data = req.files;
-        Image.create({filepath, data}).then(()=>{cb(null, filepath)});
-        cb(null, filepath); 
+        Image.create({ filepath, data }).then(() => { cb(null, filepath) });
+        cb(null, filepath);
     }
 })
-const upload = multer({storage:storage});
-app.use(bodyParser.urlencoded({ extended: true }));
-
-
+const upload = multer({ storage: storage });
 
 let active_admin = false
-
-
-
-
-
 
 router.get("/", (req, res) => {
     res.render("entrypoint")
@@ -78,64 +72,70 @@ router.post("/admin", upload.array('file'), async (req, res) => {
     if (obj.name != undefined) {
         const doc = new Teacher(obj);
         const result = await Teacher.insertMany([doc]);
-    }    
+    }
     res.render("foradmin")
-    
+
 })
 
-router.get("/admin/uploadfiles", async (req, res) =>{
+router.get("/admin/uploadfiles", async (req, res) => {
     const result = await Image.find()
     res.send(result)
 })
 
 
-router.get("/teacherlogin", (req, res)=>{
+router.get("/teacherlogin", (req, res) => {
     res.render("teacher_login")
 })
 
-router.post("/teacherlogin", async (req, res)=>{
+router.post("/teacherlogin", async (req, res) => {
+    try {
         const obj = req.body;
         currentteacher = obj.name;
-        const result = await Teacher.findOne({name:obj.name});
-        const check = await bcrypt.compare(obj.password,result.password)
-        if(result && check){
+
+        const result = await Teacher.findOne({ name: obj.name });
+        const check = await bcrypt.compare(obj.password, result.password)
+        if (result && check) {
             res.redirect("/teacher")
         }
-        else{
+        else {
             res.send("Not Auth")
-        }       
+        }
+    } catch (error) {
+        console.log(error);
+    }
+
 
 })
 
-router.get("/teacher", (req, res)=>{
-    res.render("forteacher", {currentteacher:currentteacher})
+router.get("/teacher", (req, res) => {
+    res.render("forteacher", { currentteacher: currentteacher })
 })
 
-router.post("/teacher", async (req, res)=>{
+router.post("/teacher", async (req, res) => {
     const obj = req.body;
     const doc = new Student(obj);
     const result = await Student.insertMany([doc]);
-    if(result){
+    if (result) {
         res.redirect("/teacher")
-        res.render("forteacher", {currentteacher:currentteacher})
+        res.render("forteacher", { currentteacher: currentteacher })
     }
-    else{
+    else {
         res.send("Some error occured !!");
     }
-    
+
 })
 
-router.get("/studentlogin", (req, res)=>{
+router.get("/studentlogin", (req, res) => {
     res.render("student_login");
 })
 
-router.post("/studentlogin", async (req, res)=>{
+router.post("/studentlogin", async (req, res) => {
     const obj = req.body;
     const result = await Student.findOne(obj);
-    if(result != null){
+    if (result != null) {
         res.send("Hello student")
     }
-    else{
+    else {
         res.send("Not Add pls contact your teacher")
     }
 })
